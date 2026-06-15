@@ -1,0 +1,393 @@
+{
+  "schemaVersion": 1,
+  "adapters": [
+    {
+      "schemaVersion": 1,
+      "id": "claude",
+      "name": "Claude Code",
+      "version": 1,
+      "minAppVersion": "0.0.0",
+      "minDriverVersion": 0,
+      "icon": "assets/icons/claude.svg",
+      "description": "Anthropic's Claude Code CLI (stream-json).",
+      "binaryName": "claude",
+      "installInstructions": "Install: npm install -g @anthropic-ai/claude-code",
+      "spawn": {
+        "oneShot": false,
+        "loginShell": true,
+        "workingDir": "{cwd}",
+        "args": [
+          "--input-format", "stream-json",
+          "--output-format", "stream-json",
+          "--print",
+          { "flag": "--permission-prompt-tool", "value": "stdio" },
+          "--verbose", "--include-partial-messages",
+          { "flag": ["--resume"], "value": "{conversationId}", "when": { "var": "isResume", "op": "eq", "value": "true" } },
+          { "flag": "--fork-session", "when": { "var": "forkSession", "op": "eq", "value": "true" } },
+          { "flag": ["--model"], "value": "{model}", "when": { "var": "model", "op": "set" } },
+          { "flag": ["--effort"], "value": "{effort}", "when": { "var": "effort", "op": "set" }, "validValues": ["low","medium","high","xhigh","max"] },
+          { "flag": ["--permission-mode"], "value": "plan", "when": { "var": "autonomyMode", "op": "eq", "value": "plan" } },
+          { "flag": ["--permission-mode"], "value": "acceptEdits", "when": { "var": "autonomyMode", "op": "eq", "value": "auto" } },
+          { "flag": "--dangerously-skip-permissions", "when": { "var": "autonomyMode", "op": "eq", "value": "bypass" } },
+          { "flag": ["--max-turns"], "value": "{maxTurns}", "when": { "var": "maxTurns", "op": "set" } },
+          { "flag": ["--append-system-prompt"], "value": "{systemPrompt}", "when": { "var": "appendSystemPrompt", "op": "eq", "value": "true" } },
+          { "flag": ["--system-prompt"], "value": "{systemPrompt}", "when": { "var": "appendSystemPrompt", "op": "ne", "value": "true" } },
+          { "flag": ["--mcp-config"], "value": "{mcpConfigPath}", "when": { "var": "mcpConfigPath", "op": "set" } },
+          { "flag": ["--disallowedTools"], "value": "{item}", "repeatFor": "disallowedTools" }
+        ],
+        "envFilters": {
+          "removeNames": ["CLAUDECODE"],
+          "removePrefixes": ["Malloc"],
+          "prependPathDirs": ["{bundledBinDir}"],
+          "passThrough": ["PATH","HOME","LANG","TERM","USER","SHELL"]
+        }
+      },
+      "encoding": {
+        "mode": "template",
+        "framing": "ndjson",
+        "attachments": "plugin",
+        "userMessage": {
+          "template": {
+            "type": "user",
+            "message": { "role": "user", "content": [ { "type": "text", "text": "{prompt}" } ] }
+          }
+        },
+        "controlResponse": {
+          "template": {
+            "type": "control_response",
+            "request_id": "{requestId}",
+            "response": { "behavior": "{behavior}", "updatedInput": "{updatedInput}" }
+          }
+        }
+      },
+      "parsing": {
+        "framing": "ndjson",
+        "protocol": "stream-json",
+        "discriminator": "type",
+        "pluginFallback": true,
+        "rules": [
+          { "match": { "equals": "message_start" }, "emit": "turnStart" },
+          { "match": { "equals": "content_block_stop" }, "emit": "plugin", "stateful": true },
+          { "match": { "equals": "control_request" }, "emit": "permission",
+            "fields": { "requestId": "request_id", "toolName": "request.tool_name", "input": "request.input" } },
+          { "match": { "equals": "result" }, "emit": "result",
+            "fields": { "cost": "total_cost_usd", "stop": "subtype" } },
+          { "match": { "equals": "message_stop" }, "emit": "turnEnd" }
+        ]
+      },
+      "tools": {
+        "categories": {
+          "edit": ["Edit","Write","edit_file","write_file","WriteFile","apply_patch","replace","Replace","NotebookEdit"],
+          "read": ["Read","read_file","show_file","ReadFile","ReadManyFiles"],
+          "bash": ["Bash","shell","run_in_terminal","run_shell_command","Shell","session.shell.exec","read_bash","write_bash","stop_bash","session.shell.kill"],
+          "search": ["Grep","grep","grep_search","search_file_content","SearchText","semantic_search","Glob","file_search","FindFiles","glob","list_directory","ReadFolder"],
+          "agent": ["Agent","read_agent","write_agent","codebase_investigator"],
+          "web": ["WebSearch","web_search","google_web_search","GoogleSearch","WebFetch","web_fetch"],
+          "plan": ["EnterPlanMode","enter_plan_mode","ExitPlanMode","exit_plan_mode"],
+          "task": ["TodoWrite","WriteTodos","write_todos","TaskCreate","TaskUpdate","TaskList","TaskGet","TodoRead"]
+        },
+        "aliases": {
+          "Write": ["write_file","WriteFile"],
+          "Read": ["read_file","show_file","ReadFile","ReadManyFiles"],
+          "Bash": ["shell","run_in_terminal","run_shell_command","Shell","session.shell.exec"]
+        },
+        "display": {
+          "Read":  { "friendlyName": "Read file",    "labelTemplate": "Read {detail}",    "detailFields": ["file_path","path","filePath"] },
+          "Write": { "friendlyName": "Write file",   "labelTemplate": "Write {detail}",   "detailFields": ["file_path","path"] },
+          "Edit":  { "friendlyName": "Edit file",    "labelTemplate": "Edit {detail}",    "detailFields": ["file_path","path"] },
+          "Bash":  { "friendlyName": "Run command",  "labelTemplate": "{detail}",         "detailFields": ["command","cmd"] },
+          "Grep":  { "friendlyName": "Search",       "labelTemplate": "Search \"{detail}\"", "detailFields": ["pattern","query"] },
+          "Glob":  { "friendlyName": "Find files",   "labelTemplate": "Find {detail}",    "detailFields": ["pattern","query"] },
+          "Agent": { "friendlyName": "Agent",        "labelTemplate": "Agent: {detail}",  "detailFields": ["description","prompt"] },
+          "WebSearch": { "friendlyName": "Web search", "labelTemplate": "Search \"{detail}\"", "detailFields": ["query"] },
+          "WebFetch":  { "friendlyName": "Fetch URL", "labelTemplate": "Fetch {detail}", "detailFields": ["url"] }
+        },
+        "shellWrappers": [
+          "/usr/bin/env zsh -l -c ","/usr/bin/env bash -l -c ","/usr/bin/env sh -l -c ",
+          "/usr/bin/env zsh -lc ","/usr/bin/env bash -lc ","/usr/bin/env sh -lc ",
+          "/bin/zsh -l -c ","/bin/bash -l -c ","/bin/sh -l -c ",
+          "/bin/zsh -lc ","/bin/bash -lc ","/bin/sh -lc ",
+          "zsh -l -c ","bash -l -c ","sh -l -c ",
+          "zsh -lc ","bash -lc ","sh -lc ",
+          "/bin/zsh -c ","/bin/bash -c ","/bin/sh -c ","zsh -c ","bash -c ","sh -c "
+        ],
+        "semanticShellPatterns": [
+          { "commands": ["cat","sed","head","tail","nl","less","more"], "toolName": "Read" },
+          { "commands": ["rg","grep","ag"], "toolName": "Grep" },
+          { "commands": ["find","fd","ls","tree"], "toolName": "list_directory" }
+        ]
+      },
+      "models": [
+        { "id": "sonnet", "label": "Sonnet 4.6" },
+        { "id": "opus",   "label": "Opus 4.8" },
+        { "id": "haiku",  "label": "Haiku 4.5" }
+      ],
+      "effortLevels": [
+        { "id": "low",    "label": "Low",        "icon": "bolt",         "flag": "--effort" },
+        { "id": "medium", "label": "Medium",     "icon": "psychology",   "flag": "--effort" },
+        { "id": "high",   "label": "High",       "icon": "auto_fix_high","flag": "--effort" },
+        { "id": "xhigh",  "label": "Extra High", "icon": "science",      "flag": "--effort" }
+      ],
+      "slashCommands": [
+        { "command": "/btw",          "description": "Ask a side question without interrupting",     "action": "btw",             "promptStarter": "/btw ",  "requiresActiveConversation": true },
+        { "command": "/clear",        "description": "Clear conversation, keep session",             "action": "clear" },
+        { "command": "/new",          "description": "Start completely fresh",                       "action": "new" },
+        { "command": "/rewind",       "description": "Rewind to last user message",                  "action": "rewind" },
+        { "command": "/fork",         "description": "Fork into a new tab",                          "action": "fork",            "requiresActiveConversation": true },
+        { "command": "/rename",       "description": "Rename this session",                          "action": "rename" },
+        { "command": "/export",       "description": "Export conversation as markdown",              "action": "export" },
+        { "command": "/compact",      "description": "Compact context window",                       "action": "compact" },
+        { "command": "/model",        "description": "Change model",                                 "action": "model" },
+        { "command": "/effort",       "description": "Change effort level",                          "action": "effort" },
+        { "command": "/config",       "description": "Edit global CLAUDE.md",                        "action": "editGlobalConfig" },
+        { "command": "/project-config","description": "Edit project CLAUDE.md",                     "action": "editProjectConfig" },
+        { "command": "/canvas",       "description": "Create visual content with mate-canvas",       "action": "canvas",          "promptStarter": "/canvas " },
+        { "command": "/connect",      "description": "Generate an MCP connector for a service",      "action": "connect",         "promptStarter": "/connect " },
+        { "command": "/preview",      "description": "Open web preview for a port",                 "action": "preview" },
+        { "command": "/automate",     "description": "Create an automation",                         "action": "automate",        "promptStarter": "Create an automation that " },
+        { "command": "/remind",       "description": "Set a reminder",                               "action": "remind",          "promptStarter": "Remind me to " }
+      ],
+      "capabilities": {
+        "nativeResume": true,
+        "forkSession": true,
+        "perTurnSettings": false,
+        "midSessionModeSwitch": true,
+        "nativeSkills": true,
+        "requiresClientEncoding": false,
+        "rawTextOutput": false,
+        "instructionsFileName": "CLAUDE.md",
+        "globalConfigDir": ".claude",
+        "projectConfigDir": ".claude",
+        "nextTurnQueue": true,
+        "permissionMetadata": "rich"
+      },
+      "timeouts": {
+        "noClientMs": 1800000,
+        "inactiveMs": 7200000,
+        "spawnFastFailMs": 10000,
+        "resumeHistoryMaxChars": 20000
+      },
+      "codePlugin": {
+        "kind": "bundled",
+        "driverId": "claude",
+        "minDriverVersion": 0,
+        "delegates": ["parseStreamEvent","attachments","btw"]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "codex",
+      "name": "Codex",
+      "version": 1,
+      "minAppVersion": "0.0.0",
+      "minDriverVersion": 0,
+      "description": "OpenAI Codex CLI (JSON-RPC app-server).",
+      "binaryName": "codex",
+      "installInstructions": "Install: npm install -g @openai/codex",
+      "spawn": {
+        "oneShot": false,
+        "loginShell": true,
+        "workingDir": "{cwd}",
+        "args": [ "app-server" ],
+        "envFilters": {
+          "removeNames": [],
+          "removePrefixes": [],
+          "prependPathDirs": ["{bundledBinDir}"],
+          "passThrough": ["PATH","HOME","LANG","TERM","USER","SHELL"]
+        }
+      },
+      "encoding": {
+        "mode": "jsonrpc",
+        "framing": "ndjson",
+        "attachments": "plugin",
+        "userMessage": {
+          "method": "turn/start",
+          "idStrategy": "monotonic",
+          "gateOn": { "var": "threadId", "op": "set" },
+          "paramsTemplate": {
+            "threadId": "{threadId}",
+            "model": "{model}",
+            "effort": "{effort}",
+            "input": [ { "type": "text", "text": "{prompt}" } ]
+          }
+        },
+        "interrupt": { "method": "turn/interrupt", "paramsTemplate": { "threadId": "{threadId}" } },
+        "controlResponse": { "handler": "plugin" }
+      },
+      "parsing": {
+        "framing": "ndjson",
+        "protocol": "jsonrpc-2.0",
+        "discriminator": "method",
+        "pluginFallback": true,
+        "rules": [
+          { "match": { "equals": "thread/started" }, "emit": "turnStart" },
+          { "match": { "equals": "turn/item/text" }, "emit": "text", "fields": { "text": "params.text" } },
+          { "match": { "equals": "turn/item/reasoning" }, "emit": "thinking", "fields": { "text": "params.text" } },
+          { "match": { "equals": "turn/item/commandExecution" }, "emit": "plugin", "stateful": true },
+          { "match": { "equals": "item/commandExecution/requestApproval" }, "emit": "permission",
+            "fields": { "requestId": "id", "input": "params", "command": "params.command" } },
+          { "match": { "equals": "item/fileChange/requestApproval" }, "emit": "permission",
+            "fields": { "requestId": "id", "input": "params" } },
+          { "match": { "equals": "turn/completed" }, "emit": "result", "fields": { "stop": "params.status" } }
+        ]
+      },
+      "tools": {
+        "categories": {
+          "edit": ["apply_patch","write_file","edit_file"],
+          "read": ["read_file"],
+          "bash": ["run_shell_command","shell"],
+          "search": ["grep","search"]
+        },
+        "display": {
+          "run_shell_command": { "friendlyName": "Run command", "labelTemplate": "{detail}", "detailFields": ["command"] },
+          "read_file":         { "friendlyName": "Read file",  "labelTemplate": "Read {detail}", "detailFields": ["path","file_path"] },
+          "apply_patch":       { "friendlyName": "Apply patch","labelTemplate": "Patch {detail}", "detailFields": ["path","file_path"] }
+        }
+      },
+      "models": [
+        { "id": "gpt-5.5",          "label": "GPT-5.5" },
+        { "id": "gpt-5.4",          "label": "GPT-5.4" },
+        { "id": "gpt-5.4-mini",     "label": "GPT-5.4 Mini" },
+        { "id": "gpt-5.3-codex",    "label": "GPT-5.3 Codex" },
+        { "id": "gpt-5.3-codex-spark", "label": "GPT-5.3 Codex Spark" },
+        { "id": "gpt-5.2",          "label": "GPT-5.2" }
+      ],
+      "effortLevels": [
+        { "id": "low",  "label": "Low",  "icon": "bolt" },
+        { "id": "high", "label": "High", "icon": "auto_fix_high" }
+      ],
+      "slashCommands": [
+        { "command": "/clear",        "description": "Clear conversation",          "action": "clear" },
+        { "command": "/new",          "description": "Start fresh",                 "action": "new" },
+        { "command": "/rename",       "description": "Rename this session",         "action": "rename" },
+        { "command": "/export",       "description": "Export conversation",         "action": "export" },
+        { "command": "/model",        "description": "Change model",                "action": "model" },
+        { "command": "/config",       "description": "Edit global config",          "action": "editGlobalConfig" },
+        { "command": "/project-config","description": "Edit project config",        "action": "editProjectConfig" },
+        { "command": "/connect",      "description": "Generate an MCP connector",   "action": "connect", "promptStarter": "/connect " },
+        { "command": "/preview",      "description": "Open web preview for a port", "action": "preview" },
+        { "command": "/automate",     "description": "Create an automation",        "action": "automate", "promptStarter": "Create an automation that " },
+        { "command": "/remind",       "description": "Set a reminder",              "action": "remind",   "promptStarter": "Remind me to " }
+      ],
+      "capabilities": {
+        "nativeResume": false,
+        "forkSession": false,
+        "perTurnSettings": true,
+        "midSessionModeSwitch": false,
+        "nativeSkills": true,
+        "requiresClientEncoding": true,
+        "rawTextOutput": false,
+        "instructionsFileName": "AGENTS.md",
+        "globalConfigDir": ".codex",
+        "projectConfigDir": ".codex",
+        "liveSteer": true,
+        "nextTurnQueue": true,
+        "readiness": "handshake",
+        "turnEnd": "permissionsExpire"
+      },
+      "timeouts": {
+        "noClientMs": 1800000,
+        "inactiveMs": 7200000,
+        "spawnFastFailMs": 10000,
+        "resumeHistoryMaxChars": 20000
+      },
+      "codePlugin": {
+        "kind": "bundled",
+        "driverId": "codex",
+        "minDriverVersion": 0,
+        "delegates": ["handshake","encodeUserMessage","parseControlRequest","parseStreamEvent","encodeControlResponse","attachments","discoverModels","btw"]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "copilot",
+      "name": "Copilot",
+      "version": 1,
+      "minAppVersion": "0.0.0",
+      "minDriverVersion": 0,
+      "description": "GitHub Copilot CLI (ACP JSON-RPC).",
+      "binaryName": "copilot",
+      "installInstructions": "Install GitHub Copilot CLI",
+      "spawn": {
+        "oneShot": false,
+        "loginShell": true,
+        "workingDir": "{cwd}",
+        "args": [ "--acp", "--allow-all-tools" ],
+        "envFilters": {
+          "removeNames": [],
+          "removePrefixes": [],
+          "prependPathDirs": ["{bundledBinDir}"],
+          "passThrough": ["PATH","HOME","LANG","TERM","USER","SHELL"]
+        }
+      },
+      "encoding": {
+        "mode": "plugin",
+        "framing": "ndjson",
+        "attachments": "plugin"
+      },
+      "parsing": {
+        "framing": "ndjson",
+        "protocol": "jsonrpc-2.0",
+        "discriminator": "method",
+        "pluginFallback": true,
+        "rules": []
+      },
+      "tools": {
+        "categories": {
+          "edit": ["write_file","edit_file","apply_patch"],
+          "read": ["read_file"],
+          "bash": ["run_shell_command","shell"],
+          "search": ["grep","search","file_search"]
+        },
+        "display": {
+          "run_shell_command": { "friendlyName": "Run command", "labelTemplate": "{detail}", "detailFields": ["command"] },
+          "read_file":         { "friendlyName": "Read file",  "labelTemplate": "Read {detail}", "detailFields": ["path","file_path"] }
+        }
+      },
+      "models": [
+        { "id": "gpt-5-mini",       "label": "GPT-5 mini" },
+        { "id": "gpt-4.1",          "label": "GPT-4.1" },
+        { "id": "claude-haiku-4.5", "label": "Claude Haiku 4.5" }
+      ],
+      "effortLevels": [],
+      "slashCommands": [
+        { "command": "/clear",        "description": "Clear conversation",          "action": "clear" },
+        { "command": "/new",          "description": "Start fresh",                 "action": "new" },
+        { "command": "/rename",       "description": "Rename this session",         "action": "rename" },
+        { "command": "/export",       "description": "Export conversation",         "action": "export" },
+        { "command": "/model",        "description": "Change model",                "action": "model" },
+        { "command": "/config",       "description": "Edit global config",          "action": "editGlobalConfig" },
+        { "command": "/project-config","description": "Edit project config",        "action": "editProjectConfig" },
+        { "command": "/connect",      "description": "Generate an MCP connector",   "action": "connect", "promptStarter": "/connect " },
+        { "command": "/preview",      "description": "Open web preview for a port", "action": "preview" },
+        { "command": "/automate",     "description": "Create an automation",        "action": "automate", "promptStarter": "Create an automation that " },
+        { "command": "/remind",       "description": "Set a reminder",              "action": "remind",   "promptStarter": "Remind me to " }
+      ],
+      "capabilities": {
+        "nativeResume": false,
+        "forkSession": false,
+        "perTurnSettings": false,
+        "midSessionModeSwitch": false,
+        "nativeSkills": true,
+        "requiresClientEncoding": true,
+        "rawTextOutput": false,
+        "instructionsFileName": "copilot-instructions.md",
+        "globalConfigDir": ".copilot",
+        "projectConfigDir": ".github",
+        "readiness": "handshake"
+      },
+      "timeouts": {
+        "noClientMs": 1800000,
+        "inactiveMs": 7200000,
+        "spawnFastFailMs": 10000,
+        "resumeHistoryMaxChars": 20000
+      },
+      "codePlugin": {
+        "kind": "bundled",
+        "driverId": "copilot",
+        "minDriverVersion": 0,
+        "delegates": ["handshake","encodeUserMessage","parseControlRequest","parseStreamEvent","encodeControlResponse","attachments","discoverModels"]
+      }
+    }
+  ]
+}
