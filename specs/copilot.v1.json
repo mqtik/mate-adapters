@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 1,
+  "id": "copilot",
+  "name": "Copilot",
+  "version": 1,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "GitHub Copilot CLI (ACP JSON-RPC).",
+  "binaryName": "copilot",
+  "installInstructions": "Install GitHub Copilot CLI",
+  "spawn": {
+    "oneShot": false,
+    "loginShell": true,
+    "workingDir": "{cwd}",
+    "oneShotArgs": [
+      "{prompt}"
+    ],
+    "args": [
+      "--acp",
+      "--allow-all-tools"
+    ],
+    "envFilters": {
+      "removeNames": [],
+      "removePrefixes": [],
+      "prependPathDirs": [
+        "{bundledBinDir}"
+      ],
+      "passThrough": [
+        "PATH",
+        "HOME",
+        "LANG",
+        "TERM",
+        "USER",
+        "SHELL"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "plugin",
+    "framing": "ndjson",
+    "attachments": "plugin"
+  },
+  "parsing": {
+    "framing": "ndjson",
+    "protocol": "jsonrpc-2.0",
+    "discriminator": "method",
+    "pluginFallback": true,
+    "rules": [
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "agent_message_chunk"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "agent_thought_chunk"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "plan"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "tool_call"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "tool_call_update"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "session_info_update"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "user_message_chunk"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "available_commands_update"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "current_mode_update"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "field": "params.update.sessionUpdate",
+          "equals": "config_option_update"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "session/request_permission"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "field": "result.stopReason",
+          "exists": true
+        },
+        "emit": "result"
+      },
+      {
+        "match": {
+          "field": "result",
+          "exists": true
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "field": "error",
+          "exists": true
+        },
+        "emit": "streamEvent"
+      }
+    ],
+    "_comment": "Classification rules: an ACP line -> coarse routing kind. session/update lines are keyed on the nested params.update.sessionUpdate; session/request_permission and the JSON-RPC result/error envelopes are keyed on the top-level fields. SOURCE OF TRUTH for the bundled copilot driver's routing (CopilotDriver.classifyEvent falls back to the same mapping when constructed bare); drift-guarded by adapter_event_classification_test. Per-event PARSING stays in the bundled driver."
+  },
+  "tools": {
+    "categories": {
+      "edit": [
+        "write_file",
+        "edit_file",
+        "apply_patch"
+      ],
+      "read": [
+        "read_file"
+      ],
+      "bash": [
+        "run_shell_command",
+        "shell"
+      ],
+      "search": [
+        "grep",
+        "search",
+        "file_search"
+      ]
+    },
+    "display": {
+      "run_shell_command": {
+        "friendlyName": "Run command",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "command"
+        ]
+      },
+      "read_file": {
+        "friendlyName": "Read file",
+        "labelTemplate": "Read {detail}",
+        "detailFields": [
+          "path",
+          "file_path"
+        ]
+      }
+    }
+  },
+  "models": [
+    {
+      "id": "gpt-5-mini",
+      "label": "GPT-5 mini"
+    },
+    {
+      "id": "gpt-4.1",
+      "label": "GPT-4.1"
+    },
+    {
+      "id": "claude-haiku-4.5",
+      "label": "Claude Haiku 4.5"
+    }
+  ],
+  "effortLevels": [],
+  "slashCommands": [
+    {
+      "command": "/clear",
+      "description": "Clear conversation",
+      "action": "clear"
+    },
+    {
+      "command": "/new",
+      "description": "Start fresh",
+      "action": "new"
+    },
+    {
+      "command": "/rename",
+      "description": "Rename this session",
+      "action": "rename"
+    },
+    {
+      "command": "/export",
+      "description": "Export conversation",
+      "action": "export"
+    },
+    {
+      "command": "/model",
+      "description": "Change model",
+      "action": "model"
+    },
+    {
+      "command": "/config",
+      "description": "Edit global config",
+      "action": "editGlobalConfig"
+    },
+    {
+      "command": "/project-config",
+      "description": "Edit project config",
+      "action": "editProjectConfig"
+    },
+    {
+      "command": "/connect",
+      "description": "Generate an MCP connector",
+      "action": "connect",
+      "promptStarter": "/connect "
+    },
+    {
+      "command": "/preview",
+      "description": "Open web preview for a port",
+      "action": "preview"
+    },
+    {
+      "command": "/automate",
+      "description": "Create an automation",
+      "action": "automate",
+      "promptStarter": "Create an automation that "
+    },
+    {
+      "command": "/remind",
+      "description": "Set a reminder",
+      "action": "remind",
+      "promptStarter": "Remind me to "
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "forkSession": false,
+    "perTurnSettings": false,
+    "midSessionModeSwitch": false,
+    "nativeSkills": true,
+    "requiresClientEncoding": true,
+    "rawTextOutput": false,
+    "instructionsFileName": "copilot-instructions.md",
+    "globalConfigDir": ".copilot",
+    "projectConfigDir": ".github",
+    "readiness": "handshake"
+  },
+  "timeouts": {
+    "noClientMs": 1800000,
+    "inactiveMs": 7200000,
+    "spawnFastFailMs": 10000,
+    "resumeHistoryMaxChars": 20000
+  },
+  "codePlugin": {
+    "kind": "bundled",
+    "driverId": "copilot",
+    "minDriverVersion": 0,
+    "delegates": [
+      "handshake",
+      "encodeUserMessage",
+      "parseControlRequest",
+      "parseStreamEvent",
+      "encodeControlResponse",
+      "attachments",
+      "discoverModels"
+    ]
+  }
+}

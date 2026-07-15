@@ -1,0 +1,712 @@
+{
+  "schemaVersion": 1,
+  "id": "claude",
+  "name": "Claude Code",
+  "version": 2,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "icon": "assets/icons/claude.svg",
+  "description": "Anthropic's Claude Code CLI (stream-json).",
+  "binaryName": "claude",
+  "installInstructions": "Install: npm install -g @anthropic-ai/claude-code",
+  "spawn": {
+    "oneShot": false,
+    "loginShell": true,
+    "workingDir": "{cwd}",
+    "oneShotArgs": [
+      "--print",
+      "-p",
+      "{prompt}"
+    ],
+    "args": [
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--print",
+      {
+        "flag": "--permission-prompt-tool",
+        "value": "stdio"
+      },
+      "--verbose",
+      "--include-partial-messages",
+      "--settings",
+      "{\"showThinkingSummaries\":true}",
+      {
+        "flag": [
+          "--resume"
+        ],
+        "value": "{conversationId}",
+        "when": {
+          "var": "isResume",
+          "op": "eq",
+          "value": "true"
+        }
+      },
+      {
+        "flag": "--fork-session",
+        "when": {
+          "var": "forkSession",
+          "op": "eq",
+          "value": "true"
+        }
+      },
+      {
+        "flag": [
+          "--model"
+        ],
+        "value": "{model}",
+        "when": {
+          "var": "model",
+          "op": "set"
+        }
+      },
+      {
+        "flag": [
+          "--effort"
+        ],
+        "value": "{effort}",
+        "when": {
+          "var": "effort",
+          "op": "set"
+        },
+        "validValues": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "flag": [
+          "--permission-mode"
+        ],
+        "value": "plan",
+        "when": {
+          "var": "autonomyMode",
+          "op": "eq",
+          "value": "plan"
+        }
+      },
+      {
+        "flag": [
+          "--permission-mode"
+        ],
+        "value": "acceptEdits",
+        "when": {
+          "var": "autonomyMode",
+          "op": "eq",
+          "value": "auto"
+        }
+      },
+      {
+        "flag": "--dangerously-skip-permissions",
+        "when": {
+          "var": "autonomyMode",
+          "op": "eq",
+          "value": "bypass"
+        }
+      },
+      {
+        "flag": [
+          "--max-turns"
+        ],
+        "value": "{maxTurns}",
+        "when": {
+          "var": "maxTurns",
+          "op": "set"
+        }
+      },
+      {
+        "flag": [
+          "--append-system-prompt"
+        ],
+        "value": "{systemPrompt}",
+        "when": {
+          "var": "appendSystemPrompt",
+          "op": "eq",
+          "value": "true"
+        }
+      },
+      {
+        "flag": [
+          "--system-prompt"
+        ],
+        "value": "{systemPrompt}",
+        "when": {
+          "var": "appendSystemPrompt",
+          "op": "ne",
+          "value": "true"
+        }
+      },
+      {
+        "flag": [
+          "--mcp-config"
+        ],
+        "value": "{mcpConfigPath}",
+        "when": {
+          "var": "mcpConfigPath",
+          "op": "set"
+        }
+      },
+      {
+        "flag": [
+          "--disallowedTools"
+        ],
+        "value": "{item}",
+        "repeatFor": "disallowedTools"
+      }
+    ],
+    "envFilters": {
+      "removeNames": [
+        "CLAUDECODE"
+      ],
+      "removePrefixes": [
+        "Malloc"
+      ],
+      "prependPathDirs": [
+        "{bundledBinDir}"
+      ],
+      "passThrough": [
+        "PATH",
+        "HOME",
+        "LANG",
+        "TERM",
+        "USER",
+        "SHELL"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "template",
+    "framing": "ndjson",
+    "attachments": "plugin",
+    "userMessage": {
+      "template": {
+        "type": "user",
+        "message": {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "{prompt}"
+            }
+          ]
+        }
+      }
+    },
+    "controlResponse": {
+      "template": {
+        "type": "control_response",
+        "request_id": "{requestId}",
+        "response": {
+          "behavior": "{behavior}",
+          "updatedInput": "{updatedInput}"
+        }
+      }
+    }
+  },
+  "parsing": {
+    "framing": "ndjson",
+    "protocol": "stream-json",
+    "discriminator": "type",
+    "pluginFallback": true,
+    "rules": [
+      {
+        "match": {
+          "equals": "message_start"
+        },
+        "emit": "turnStart"
+      },
+      {
+        "match": {
+          "equals": "content_block_stop"
+        },
+        "emit": "plugin",
+        "stateful": true
+      },
+      {
+        "match": {
+          "equals": "control_request"
+        },
+        "emit": "permission",
+        "fields": {
+          "requestId": "request_id",
+          "toolName": "request.tool_name",
+          "input": "request.input"
+        }
+      },
+      {
+        "match": {
+          "equals": "result"
+        },
+        "emit": "result",
+        "fields": {
+          "cost": "total_cost_usd",
+          "stop": "subtype"
+        }
+      },
+      {
+        "match": {
+          "equals": "message_stop"
+        },
+        "emit": "turnEnd"
+      },
+      {
+        "match": {
+          "equals": "system"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "assistant"
+        },
+        "emit": "assistant"
+      },
+      {
+        "match": {
+          "equals": "user"
+        },
+        "emit": "user"
+      },
+      {
+        "match": {
+          "equals": "stream_event"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "control_cancel_request"
+        },
+        "emit": "controlCancel"
+      }
+    ],
+    "_comment": "Rules serve two roles keyed on the top-level stream-json `type`: (1) CLASSIFICATION -> coarse routing kind for the bundled claude driver (system/assistant/user/stream_event/result/control_request/control_cancel_request), the source of truth it consults before its Dart fallback; (2) a zero-Dart PARSE demo (message_start/message_stop/content_block_stop) exercised by zero_dart_adapter_test. Real per-event claude parsing stays in the bundled driver."
+  },
+  "tools": {
+    "categories": {
+      "edit": [
+        "Edit",
+        "Write",
+        "edit_file",
+        "write_file",
+        "WriteFile",
+        "apply_patch",
+        "replace",
+        "Replace",
+        "NotebookEdit"
+      ],
+      "read": [
+        "Read",
+        "read_file",
+        "show_file",
+        "ReadFile",
+        "ReadManyFiles"
+      ],
+      "bash": [
+        "Bash",
+        "shell",
+        "run_in_terminal",
+        "run_shell_command",
+        "Shell",
+        "session.shell.exec",
+        "read_bash",
+        "write_bash",
+        "stop_bash",
+        "session.shell.kill"
+      ],
+      "search": [
+        "Grep",
+        "grep",
+        "grep_search",
+        "search_file_content",
+        "SearchText",
+        "semantic_search",
+        "Glob",
+        "file_search",
+        "FindFiles",
+        "glob",
+        "list_directory",
+        "ReadFolder"
+      ],
+      "agent": [
+        "Agent",
+        "read_agent",
+        "write_agent",
+        "codebase_investigator"
+      ],
+      "web": [
+        "WebSearch",
+        "web_search",
+        "google_web_search",
+        "GoogleSearch",
+        "WebFetch",
+        "web_fetch"
+      ],
+      "plan": [
+        "EnterPlanMode",
+        "enter_plan_mode",
+        "ExitPlanMode",
+        "exit_plan_mode"
+      ],
+      "task": [
+        "TodoWrite",
+        "WriteTodos",
+        "write_todos",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskList",
+        "TaskGet",
+        "TodoRead"
+      ]
+    },
+    "aliases": {
+      "Write": [
+        "write_file",
+        "WriteFile"
+      ],
+      "Read": [
+        "read_file",
+        "show_file",
+        "ReadFile",
+        "ReadManyFiles"
+      ],
+      "Bash": [
+        "shell",
+        "run_in_terminal",
+        "run_shell_command",
+        "Shell",
+        "session.shell.exec"
+      ]
+    },
+    "display": {
+      "Read": {
+        "friendlyName": "Read file",
+        "labelTemplate": "Read {detail}",
+        "detailFields": [
+          "file_path",
+          "path",
+          "filePath"
+        ]
+      },
+      "Write": {
+        "friendlyName": "Write file",
+        "labelTemplate": "Write {detail}",
+        "detailFields": [
+          "file_path",
+          "path"
+        ]
+      },
+      "Edit": {
+        "friendlyName": "Edit file",
+        "labelTemplate": "Edit {detail}",
+        "detailFields": [
+          "file_path",
+          "path"
+        ]
+      },
+      "Bash": {
+        "friendlyName": "Run command",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "command",
+          "cmd"
+        ]
+      },
+      "Grep": {
+        "friendlyName": "Search",
+        "labelTemplate": "Search \"{detail}\"",
+        "detailFields": [
+          "pattern",
+          "query"
+        ]
+      },
+      "Glob": {
+        "friendlyName": "Find files",
+        "labelTemplate": "Find {detail}",
+        "detailFields": [
+          "pattern",
+          "query"
+        ]
+      },
+      "Agent": {
+        "friendlyName": "Agent",
+        "labelTemplate": "Agent: {detail}",
+        "detailFields": [
+          "description",
+          "prompt"
+        ]
+      },
+      "WebSearch": {
+        "friendlyName": "Web search",
+        "labelTemplate": "Search \"{detail}\"",
+        "detailFields": [
+          "query"
+        ]
+      },
+      "WebFetch": {
+        "friendlyName": "Fetch URL",
+        "labelTemplate": "Fetch {detail}",
+        "detailFields": [
+          "url"
+        ]
+      }
+    },
+    "shellWrappers": [
+      "/usr/bin/env zsh -l -c ",
+      "/usr/bin/env bash -l -c ",
+      "/usr/bin/env sh -l -c ",
+      "/usr/bin/env zsh -lc ",
+      "/usr/bin/env bash -lc ",
+      "/usr/bin/env sh -lc ",
+      "/bin/zsh -l -c ",
+      "/bin/bash -l -c ",
+      "/bin/sh -l -c ",
+      "/bin/zsh -lc ",
+      "/bin/bash -lc ",
+      "/bin/sh -lc ",
+      "zsh -l -c ",
+      "bash -l -c ",
+      "sh -l -c ",
+      "zsh -lc ",
+      "bash -lc ",
+      "sh -lc ",
+      "/bin/zsh -c ",
+      "/bin/bash -c ",
+      "/bin/sh -c ",
+      "zsh -c ",
+      "bash -c ",
+      "sh -c "
+    ],
+    "semanticShellPatterns": [
+      {
+        "commands": [
+          "cat",
+          "sed",
+          "head",
+          "tail",
+          "nl",
+          "less",
+          "more"
+        ],
+        "toolName": "Read"
+      },
+      {
+        "commands": [
+          "rg",
+          "grep",
+          "ag"
+        ],
+        "toolName": "Grep"
+      },
+      {
+        "commands": [
+          "find",
+          "fd",
+          "ls",
+          "tree"
+        ],
+        "toolName": "list_directory"
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "sonnet",
+      "label": "Sonnet 5",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "claude-fable-5",
+      "label": "Fable 5",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "opus",
+      "label": "Opus 4.8",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "haiku",
+      "label": "Haiku 4.5",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    }
+  ],
+  "effortLevels": [
+    {
+      "id": "low",
+      "label": "Low",
+      "icon": "bolt",
+      "flag": "--effort"
+    },
+    {
+      "id": "medium",
+      "label": "Medium",
+      "icon": "psychology",
+      "flag": "--effort"
+    },
+    {
+      "id": "high",
+      "label": "High",
+      "icon": "auto_fix_high",
+      "flag": "--effort"
+    },
+    {
+      "id": "xhigh",
+      "label": "Extra High",
+      "icon": "science",
+      "flag": "--effort"
+    }
+  ],
+  "slashCommands": [
+    {
+      "command": "/btw",
+      "description": "Ask a side question without interrupting",
+      "action": "btw",
+      "promptStarter": "/btw ",
+      "requiresActiveConversation": true
+    },
+    {
+      "command": "/clear",
+      "description": "Clear conversation, keep session",
+      "action": "clear"
+    },
+    {
+      "command": "/new",
+      "description": "Start completely fresh",
+      "action": "new"
+    },
+    {
+      "command": "/rewind",
+      "description": "Rewind to last user message",
+      "action": "rewind"
+    },
+    {
+      "command": "/fork",
+      "description": "Fork into a new tab",
+      "action": "fork",
+      "requiresActiveConversation": true
+    },
+    {
+      "command": "/rename",
+      "description": "Rename this session",
+      "action": "rename"
+    },
+    {
+      "command": "/export",
+      "description": "Export conversation as markdown",
+      "action": "export"
+    },
+    {
+      "command": "/compact",
+      "description": "Compact context window",
+      "action": "compact"
+    },
+    {
+      "command": "/model",
+      "description": "Change model",
+      "action": "model"
+    },
+    {
+      "command": "/effort",
+      "description": "Change effort level",
+      "action": "effort"
+    },
+    {
+      "command": "/config",
+      "description": "Edit global CLAUDE.md",
+      "action": "editGlobalConfig"
+    },
+    {
+      "command": "/project-config",
+      "description": "Edit project CLAUDE.md",
+      "action": "editProjectConfig"
+    },
+    {
+      "command": "/canvas",
+      "description": "Create visual content with mate-canvas",
+      "action": "canvas",
+      "promptStarter": "/canvas "
+    },
+    {
+      "command": "/connect",
+      "description": "Generate an MCP connector for a service",
+      "action": "connect",
+      "promptStarter": "/connect "
+    },
+    {
+      "command": "/preview",
+      "description": "Open web preview for a port",
+      "action": "preview"
+    },
+    {
+      "command": "/automate",
+      "description": "Create an automation",
+      "action": "automate",
+      "promptStarter": "Create an automation that "
+    },
+    {
+      "command": "/remind",
+      "description": "Set a reminder",
+      "action": "remind",
+      "promptStarter": "Remind me to "
+    }
+  ],
+  "capabilities": {
+    "nativeResume": true,
+    "forkSession": true,
+    "perTurnSettings": false,
+    "midSessionModeSwitch": true,
+    "nativeSkills": true,
+    "requiresClientEncoding": false,
+    "rawTextOutput": false,
+    "instructionsFileName": "CLAUDE.md",
+    "globalConfigDir": ".claude",
+    "projectConfigDir": ".claude",
+    "nextTurnQueue": true,
+    "permissionMetadata": "rich"
+  },
+  "timeouts": {
+    "noClientMs": 1800000,
+    "inactiveMs": 7200000,
+    "spawnFastFailMs": 10000,
+    "resumeHistoryMaxChars": 20000
+  },
+  "codePlugin": {
+    "kind": "bundled",
+    "driverId": "claude",
+    "minDriverVersion": 0,
+    "delegates": [
+      "parseStreamEvent",
+      "attachments",
+      "btw"
+    ]
+  },
+  "subAgents": {
+    "backgroundTranscript": {
+      "pathPattern": "output_file:\\s*(\\S+)",
+      "idPattern": "agentId:\\s*(\\S+)"
+    }
+  }
+}

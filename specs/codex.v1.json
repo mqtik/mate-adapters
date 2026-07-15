@@ -1,0 +1,534 @@
+{
+  "schemaVersion": 1,
+  "id": "codex",
+  "name": "Codex",
+  "version": 1,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "OpenAI Codex CLI (JSON-RPC app-server).",
+  "binaryName": "codex",
+  "installInstructions": "Install: npm install -g @openai/codex",
+  "spawn": {
+    "oneShot": false,
+    "loginShell": true,
+    "workingDir": "{cwd}",
+    "oneShotArgs": [
+      "-q",
+      "{prompt}"
+    ],
+    "args": [
+      "app-server"
+    ],
+    "envFilters": {
+      "removeNames": [],
+      "removePrefixes": [],
+      "prependPathDirs": [
+        "{bundledBinDir}"
+      ],
+      "passThrough": [
+        "PATH",
+        "HOME",
+        "LANG",
+        "TERM",
+        "USER",
+        "SHELL"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "jsonrpc",
+    "framing": "ndjson",
+    "attachments": "plugin",
+    "userMessage": {
+      "method": "turn/start",
+      "idStrategy": "monotonic",
+      "gateOn": {
+        "var": "threadId",
+        "op": "set"
+      },
+      "paramsTemplate": {
+        "threadId": "{threadId}",
+        "model": "{model}",
+        "effort": "{effort}",
+        "input": [
+          {
+            "type": "text",
+            "text": "{prompt}"
+          }
+        ]
+      }
+    },
+    "interrupt": {
+      "method": "turn/interrupt",
+      "paramsTemplate": {
+        "threadId": "{threadId}"
+      }
+    },
+    "controlResponse": {
+      "handler": "plugin"
+    }
+  },
+  "parsing": {
+    "framing": "ndjson",
+    "protocol": "jsonrpc-2.0",
+    "discriminator": "method",
+    "pluginFallback": true,
+    "_comment": "Classification rules: method -> coarse routing kind (system | streamEvent | permission | controlCancel | result | ignore). `ignore` = recognized housekeeping the UI drops AND the mux feed suppresses (must NOT be `system`, which publishes to the feed). This is the SOURCE OF TRUTH for how the bundled codex driver routes each JSON-RPC method; CodexDriver.builtinClassification mirrors it as an offline fallback and is drift-guarded against it (adapter_event_classification_test). Per-event PARSING (message/reasoning/tool deltas, item projection) and the stateful cases (turn/completed & turn/aborted dedup, the codex/event/* prefix) stay in the bundled driver and are intentionally NOT declared here.",
+    "rules": [
+      {
+        "match": {
+          "equals": "thread/started"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/status/changed"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/name/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/settings/updated"
+        },
+        "emit": "ignore"
+      },
+      {
+        "match": {
+          "equals": "thread/tokenUsage/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "turn/diff/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "account/rateLimits/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "mcpServer/startupStatus/updated"
+        },
+        "emit": "ignore"
+      },
+      {
+        "match": {
+          "equals": "remoteControl/status/changed"
+        },
+        "emit": "ignore"
+      },
+      {
+        "match": {
+          "equals": "skills/changed"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "turn/started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/completed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/agentMessage/delta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/commandExecution/outputDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/commandExecution/terminalInteraction"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/fileChange/outputDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/plan/delta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/plan/updated"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/fileChange/patchUpdated"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/mcpToolCall/progress"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/reasoning/summaryTextDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/reasoning/textDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "warning"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "guardianWarning"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "deprecationNotice"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "configWarning"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "model/rerouted"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "model/verification"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/compacted"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/failed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "serverRequest/resolved"
+        },
+        "emit": "controlCancel"
+      },
+      {
+        "match": {
+          "equals": "item/commandExecution/requestApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "item/fileChange/requestApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "item/tool/requestUserInput"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "mcpServer/elicitation/request"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "item/permissions/requestApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "applyPatchApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "execCommandApproval"
+        },
+        "emit": "permission"
+      }
+    ]
+  },
+  "tools": {
+    "categories": {
+      "edit": [
+        "apply_patch",
+        "write_file",
+        "edit_file"
+      ],
+      "read": [
+        "read_file"
+      ],
+      "bash": [
+        "run_shell_command",
+        "shell"
+      ],
+      "search": [
+        "grep",
+        "search"
+      ]
+    },
+    "display": {
+      "run_shell_command": {
+        "friendlyName": "Run command",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "command"
+        ]
+      },
+      "read_file": {
+        "friendlyName": "Read file",
+        "labelTemplate": "Read {detail}",
+        "detailFields": [
+          "path",
+          "file_path"
+        ]
+      },
+      "apply_patch": {
+        "friendlyName": "Apply patch",
+        "labelTemplate": "Patch {detail}",
+        "detailFields": [
+          "path",
+          "file_path"
+        ]
+      }
+    }
+  },
+  "models": [
+    {
+      "id": "gpt-5.6-sol",
+      "label": "GPT-5.6 Sol"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "label": "GPT-5.6 Terra"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "label": "GPT-5.6 Luna"
+    },
+    {
+      "id": "gpt-5.5",
+      "label": "GPT-5.5"
+    },
+    {
+      "id": "gpt-5.4",
+      "label": "GPT-5.4"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT-5.4 Mini"
+    },
+    {
+      "id": "gpt-5.3-codex",
+      "label": "GPT-5.3 Codex"
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "label": "GPT-5.3 Codex Spark"
+    },
+    {
+      "id": "gpt-5.2",
+      "label": "GPT-5.2"
+    }
+  ],
+  "effortLevels": [
+    {
+      "id": "low",
+      "label": "Low",
+      "icon": "bolt"
+    },
+    {
+      "id": "high",
+      "label": "High",
+      "icon": "auto_fix_high"
+    }
+  ],
+  "slashCommands": [
+    {
+      "command": "/clear",
+      "description": "Clear conversation",
+      "action": "clear"
+    },
+    {
+      "command": "/new",
+      "description": "Start fresh",
+      "action": "new"
+    },
+    {
+      "command": "/rename",
+      "description": "Rename this session",
+      "action": "rename"
+    },
+    {
+      "command": "/export",
+      "description": "Export conversation",
+      "action": "export"
+    },
+    {
+      "command": "/model",
+      "description": "Change model",
+      "action": "model"
+    },
+    {
+      "command": "/config",
+      "description": "Edit global config",
+      "action": "editGlobalConfig"
+    },
+    {
+      "command": "/project-config",
+      "description": "Edit project config",
+      "action": "editProjectConfig"
+    },
+    {
+      "command": "/connect",
+      "description": "Generate an MCP connector",
+      "action": "connect",
+      "promptStarter": "/connect "
+    },
+    {
+      "command": "/preview",
+      "description": "Open web preview for a port",
+      "action": "preview"
+    },
+    {
+      "command": "/compact",
+      "description": "Compact context window",
+      "action": "compact"
+    },
+    {
+      "command": "/automate",
+      "description": "Create an automation",
+      "action": "automate",
+      "promptStarter": "Create an automation that "
+    },
+    {
+      "command": "/remind",
+      "description": "Set a reminder",
+      "action": "remind",
+      "promptStarter": "Remind me to "
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "forkSession": false,
+    "perTurnSettings": true,
+    "midSessionModeSwitch": false,
+    "nativeSkills": true,
+    "requiresClientEncoding": true,
+    "rawTextOutput": false,
+    "instructionsFileName": "AGENTS.md",
+    "globalConfigDir": ".codex",
+    "projectConfigDir": ".codex",
+    "liveSteer": true,
+    "nextTurnQueue": true,
+    "readiness": "handshake",
+    "turnEnd": "permissionsExpire"
+  },
+  "timeouts": {
+    "noClientMs": 1800000,
+    "inactiveMs": 7200000,
+    "spawnFastFailMs": 10000,
+    "resumeHistoryMaxChars": 20000
+  },
+  "codePlugin": {
+    "kind": "bundled",
+    "driverId": "codex",
+    "minDriverVersion": 0,
+    "delegates": [
+      "handshake",
+      "encodeUserMessage",
+      "parseControlRequest",
+      "parseStreamEvent",
+      "encodeControlResponse",
+      "attachments",
+      "discoverModels",
+      "btw"
+    ],
+    "config": {
+      "reasoningSummary": "auto",
+      "autonomy": {
+        "bypass": {
+          "approvalPolicy": "never",
+          "sandboxMode": "danger-full-access"
+        },
+        "plan": {
+          "approvalPolicy": "untrusted",
+          "sandboxMode": "read-only"
+        },
+        "default": {
+          "approvalPolicy": "untrusted",
+          "sandboxMode": "workspace-write"
+        }
+      }
+    }
+  }
+}

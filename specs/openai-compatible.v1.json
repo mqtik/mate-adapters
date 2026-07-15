@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "id": "openai-compatible",
+  "name": "OpenAI Compatible",
+  "version": 1,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "Any OpenAI-compatible Responses API endpoint over HTTP/SSE.",
+  "binaryName": "http-responses",
+  "installInstructions": "Set MATE_OPENAI_COMPATIBLE_ENDPOINT and MATE_OPENAI_COMPATIBLE_API_KEY.",
+  "spawn": {
+    "command": "http-responses",
+    "args": [],
+    "oneShot": false,
+    "loginShell": false,
+    "workingDir": "{cwd}"
+  },
+  "transport": {
+    "kind": "http-responses",
+    "endpointEnv": "MATE_OPENAI_COMPATIBLE_ENDPOINT",
+    "apiKeyEnv": "MATE_OPENAI_COMPATIBLE_API_KEY",
+    "headers": {
+      "X-Mate-Adapter": "openai-compatible"
+    }
+  },
+  "encoding": {
+    "mode": "template",
+    "framing": "json",
+    "attachments": "openaiResponses",
+    "userMessage": {
+      "template": {
+        "model": "{model}",
+        "stream": true,
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "{prompt}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parsing": {
+    "framing": "sse",
+    "protocol": "responses",
+    "discriminator": "type",
+    "pluginFallback": false,
+    "rules": [
+      {
+        "match": {
+          "equals": "response.created"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.output_text.delta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.completed"
+        },
+        "emit": "result"
+      },
+      {
+        "match": {
+          "equals": "response.failed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      }
+    ],
+    "reducers": [
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.created"
+        },
+        "emit": "turnStart"
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.output_text.delta"
+        },
+        "emit": "textDelta",
+        "fields": {
+          "text": "delta"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.output_item.added"
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "item.id",
+          "name": "item.name",
+          "input": "item.arguments"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.output_item.done"
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "item.id",
+          "output": "item.output",
+          "isError": "item.error"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.completed"
+        },
+        "emit": "turnEnd"
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.failed"
+        },
+        "emit": "error",
+        "fields": {
+          "message": "response.error.message"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "error"
+        },
+        "emit": "error",
+        "fields": {
+          "message": "message"
+        }
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "gpt-5.4",
+      "label": "GPT-5.4",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT-5.4 mini",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "label": "GPT-5.3 Codex Spark",
+      "inputModalities": [
+        "text"
+      ],
+      "unsupportedImageAttachmentMessage": "This model does not support image attachments. Switch models to send images."
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "perTurnSettings": true,
+    "rawTextOutput": false,
+    "permissionMetadata": "none",
+    "readiness": "immediate"
+  },
+  "timeouts": {
+    "readinessTimeoutMs": 30000,
+    "wedgeTimeoutMs": 180000
+  }
+}
