@@ -22,16 +22,6 @@
       "minDriverVersion": 0
     },
     {
-      "id": "copilot",
-      "name": "Copilot",
-      "version": 1,
-      "specUrl": "specs/copilot.v1.json",
-      "contentHash": "8cb6f288a27e5b97afe4f4c3158186902d3db0fa9084ddeb0cf38c4dbce144ca",
-      "schemaVersion": 1,
-      "minAppVersion": "0.0.0",
-      "minDriverVersion": 0
-    },
-    {
       "id": "openai-compatible",
       "name": "OpenAI Compatible",
       "version": 2,
