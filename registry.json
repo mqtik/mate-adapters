@@ -65,9 +65,9 @@
     {
       "id": "gent",
       "name": "Gent",
-      "version": 2,
-      "specUrl": "specs/gent.v2.json",
-      "contentHash": "6c893ff83c4733443408d5766123f4e51c4a8199b6736f96ab41eedd5043353d",
+      "version": 3,
+      "specUrl": "specs/gent.v3.json",
+      "contentHash": "7af4d23d081ac43b2d16d772adb1283b0144fb00ed6a801436f4c874669f9b57",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
