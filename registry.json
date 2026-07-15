@@ -14,12 +14,13 @@
     {
       "id": "codex",
       "name": "Codex",
-      "version": 9,
-      "specUrl": "specs/codex.v9.json",
-      "contentHash": "e1a8da3accd15ed22dd20c88017628a7c860469200b6e6d60fe11250fae96237",
+      "version": 10,
+      "specUrl": "specs/codex.v10.json",
+      "contentHash": "514f97e8ca0bfec3fa7d5bca6ce3f333dc925e39ffc318ec6ec7c05940c1e3c4",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
-      "minDriverVersion": 0
+      "minDriverVersion": 0,
+      "sha256": "514f97e8ca0bfec3fa7d5bca6ce3f333dc925e39ffc318ec6ec7c05940c1e3c4"
     },
     {
       "id": "openai-compatible",
