@@ -24,9 +24,9 @@
     {
       "id": "openai-compatible",
       "name": "OpenAI Compatible",
-      "version": 2,
-      "specUrl": "specs/openai-compatible.v2.json",
-      "contentHash": "1b231c8fe5fdc0377b4d52b0fef9edd35993e8fef27a86de3a39d0f6ac740c13",
+      "version": 3,
+      "specUrl": "specs/openai-compatible.v3.json",
+      "contentHash": "1adf1f2545e7c5f700674e588b35a760717c76f443359d1c3fc26f2e7d7c3136",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -34,9 +34,9 @@
     {
       "id": "openai-compatible-chat",
       "name": "OpenAI-Compatible Chat Completions",
-      "version": 2,
-      "specUrl": "specs/openai-compatible-chat.v2.json",
-      "contentHash": "f7e48a2ec8840ad98cdada306f9e3e8a12d501e46235a8a3a7e99e207cb758aa",
+      "version": 3,
+      "specUrl": "specs/openai-compatible-chat.v3.json",
+      "contentHash": "aa54337e94f80dcd7e09621875bbbc44b8298fbd678f49fa98b27c7294384198",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -44,9 +44,9 @@
     {
       "id": "together",
       "name": "Together AI",
-      "version": 1,
-      "specUrl": "specs/together.v1.json",
-      "contentHash": "2e1a5a8b44ad9ce0e75c85b0defc82ebc3e2fe2f204dd1435c77771829e54e23",
+      "version": 2,
+      "specUrl": "specs/together.v2.json",
+      "contentHash": "ba99c6ebaf1f0cdcec436538dd7a58c376a072e659dbc9901e546cba5be5e32f",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -54,9 +54,9 @@
     {
       "id": "ollama",
       "name": "Ollama",
-      "version": 1,
-      "specUrl": "specs/ollama.v1.json",
-      "contentHash": "925073a8478b9255d91873d62ef2d8a2b90814ac351613fa328a41c50793e9a6",
+      "version": 2,
+      "specUrl": "specs/ollama.v2.json",
+      "contentHash": "18a883c7e9a79b8348fae996245e78563e2aa73a71365c6e8601a5bb55889a22",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0

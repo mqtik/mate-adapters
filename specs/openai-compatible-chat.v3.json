@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "id": "openai-compatible-chat",
+  "name": "OpenAI-Compatible Chat Completions",
+  "version": 3,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "OpenAI Chat Completions API over HTTP/SSE. Use provider-specific specs to declare models and their modalities. Function calls are executed locally by the shared, adapter-defined tool runtime when the selected model supports OpenAI-style tools.",
+  "binaryName": "http-chat-completions",
+  "installInstructions": "Set MATE_OPENAI_COMPATIBLE_CHAT_ENDPOINT and MATE_OPENAI_COMPATIBLE_API_KEY, or install a provider-specific Mate adapter spec.",
+  "spawn": {
+    "command": "http-chat-completions",
+    "args": [],
+    "oneShot": false,
+    "loginShell": false,
+    "workingDir": "{cwd}"
+  },
+  "transport": {
+    "kind": "http-chat-completions",
+    "endpointEnv": "MATE_OPENAI_COMPATIBLE_CHAT_ENDPOINT",
+    "apiKeyEnv": "MATE_OPENAI_COMPATIBLE_API_KEY",
+    "headers": {
+      "X-Mate-Adapter": "openai-compatible-chat"
+    },
+    "sseDefaultEvent": "chat.completion.chunk",
+    "sseDoneEvent": "chat.completion.done",
+    "toolRuntime": {
+      "enabled": true,
+      "tools": [
+        "read_file",
+        "write_file",
+        "list_files",
+        "search_files",
+        "run_command",
+        "ask_user",
+        "update_plan",
+        "request_plan_approval"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "template",
+    "framing": "json",
+    "attachments": "openaiChatCompletions",
+    "modeInstructions": {
+      "plan": "You are in Plan mode. Do not make changes or invoke mutating tools. Analyze the request, call update_plan with concise numbered tasks, then call request_plan_approval with the final plan. Wait for approval before implementation."
+    },
+    "userMessage": {
+      "template": {
+        "model": "{model}",
+        "stream": true,
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "{prompt}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parsing": {
+    "framing": "sse",
+    "protocol": "chat-completions",
+    "discriminator": "type",
+    "pluginFallback": false,
+    "rules": [
+      {
+        "match": {
+          "equals": "chat.completion.chunk"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "chat.completion.done"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.output"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.done"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.control_request"
+        },
+        "emit": "control_request",
+        "fields": {
+          "requestId": "requestId",
+          "toolName": "toolName",
+          "input": "input",
+          "toolUseId": "toolUseId"
+        }
+      }
+    ],
+    "reducers": [
+      {
+        "match": {
+          "on": "type",
+          "equals": "chat.completion.chunk"
+        },
+        "emit": "textDelta",
+        "fields": {
+          "text": "choices[].delta.content"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "chat.completion.done"
+        },
+        "emit": "turnEnd"
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "error"
+        },
+        "emit": "error",
+        "fields": {
+          "message": "message"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.started"
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "id",
+          "name": "name",
+          "input": "input"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.output"
+        },
+        "emit": "toolOutput",
+        "fields": {
+          "toolId": "toolId",
+          "output": "output"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.done"
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "toolId",
+          "output": "output",
+          "isError": "isError"
+        }
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "*",
+      "label": "Unknown OpenAI-compatible model",
+      "hidden": true,
+      "inputModalities": [
+        "text"
+      ],
+      "unsupportedImageAttachmentMessage": "This model does not support image attachments. Switch models to send images."
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "perTurnSettings": true,
+    "rawTextOutput": false,
+    "permissionMetadata": "none",
+    "readiness": "immediate"
+  },
+  "timeouts": {
+    "readinessTimeoutMs": 30000,
+    "wedgeTimeoutMs": 180000
+  }
+}
