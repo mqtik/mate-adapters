@@ -14,9 +14,9 @@
     {
       "id": "codex",
       "name": "Codex",
-      "version": 8,
-      "specUrl": "specs/codex.v8.json",
-      "contentHash": "9fdfbbcf91c9a26206d1f0d46c50d52e2fb724ae0bdde19f5493110f0089272f",
+      "version": 9,
+      "specUrl": "specs/codex.v9.json",
+      "contentHash": "e1a8da3accd15ed22dd20c88017628a7c860469200b6e6d60fe11250fae96237",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
