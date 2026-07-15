@@ -60,6 +60,16 @@
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
+    },
+    {
+      "id": "gent",
+      "name": "Gent",
+      "version": 1,
+      "specUrl": "specs/gent.v1.json",
+      "contentHash": "c9ab0d852a450caab7adc807eee29e0d234c4aba13905a8c0d9451b365524990",
+      "schemaVersion": 1,
+      "minAppVersion": "0.0.0",
+      "minDriverVersion": 0
     }
   ]
 }

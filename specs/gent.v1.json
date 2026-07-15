@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "id": "gent",
+  "name": "Gent",
+  "version": 1,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "Gent hosted AI gateway. This OpenAI-compatible Chat Completions profile is available only after the user enrolls with a License Code; models, modalities, and tool support are registry-managed.",
+  "binaryName": "http-chat-completions",
+  "installInstructions": "Enroll in Remote Access with a License Code, then configure the Gent gateway credential supplied by your account.",
+  "spawn": {
+    "command": "http-chat-completions",
+    "args": [],
+    "oneShot": false,
+    "loginShell": false,
+    "workingDir": "{cwd}"
+  },
+  "transport": {
+    "kind": "http-chat-completions",
+    "endpoint": "https://ai.mate.iwwwan.com/v1/chat/completions",
+    "endpointEnv": "MATE_GENT_API_ENDPOINT",
+    "apiKeyEnv": "MATE_GENT_LICENSE_CODE",
+    "headers": {
+      "X-Mate-Adapter": "gent"
+    },
+    "sseDefaultEvent": "chat.completion.chunk",
+    "sseDoneEvent": "chat.completion.done",
+    "toolRuntime": {
+      "enabled": true,
+      "tools": [
+        "read_file",
+        "write_file",
+        "list_files",
+        "search_files",
+        "run_command",
+        "ask_user",
+        "update_plan",
+        "request_plan_approval"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "template",
+    "framing": "json",
+    "attachments": "openaiChatCompletions",
+    "modeInstructions": {
+      "plan": "You are in Plan mode. Do not make changes or invoke mutating tools. Analyze the request, call update_plan with concise numbered tasks, then call request_plan_approval with the final plan. Wait for approval before implementation."
+    },
+    "userMessage": {
+      "template": {
+        "model": "{model}",
+        "stream": true,
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "{prompt}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parsing": {
+    "framing": "sse",
+    "protocol": "chat-completions",
+    "discriminator": "type",
+    "pluginFallback": false,
+    "rules": [
+      {
+        "match": {
+          "equals": "chat.completion.chunk"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "chat.completion.done"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.output"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.done"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.control_request"
+        },
+        "emit": "control_request",
+        "fields": {
+          "requestId": "requestId",
+          "toolName": "toolName",
+          "input": "input",
+          "toolUseId": "toolUseId"
+        }
+      }
+    ],
+    "reducers": [
+      {
+        "match": {
+          "on": "type",
+          "equals": "chat.completion.chunk"
+        },
+        "emit": "textDelta",
+        "fields": {
+          "text": "choices[].delta.content"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "chat.completion.done"
+        },
+        "emit": "turnEnd"
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "error"
+        },
+        "emit": "error",
+        "fields": {
+          "message": "message"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.started"
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "id",
+          "name": "name",
+          "input": "input"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.output"
+        },
+        "emit": "toolOutput",
+        "fields": {
+          "toolId": "toolId",
+          "output": "output"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.done"
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "toolId",
+          "output": "output",
+          "isError": "isError"
+        }
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "zai-org/GLM-5.1",
+      "label": "GLM 5.1",
+      "inputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "moonshotai/Kimi-K2.5",
+      "label": "Kimi K2.5",
+      "inputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+      "label": "Qwen3 Coder 480B",
+      "inputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "label": "GPT-OSS 120B",
+      "inputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "label": "GPT-OSS 20B",
+      "inputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-R1",
+      "label": "DeepSeek R1",
+      "inputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      "label": "Llama 4 Maverick",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "label": "Llama 4 Scout",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "Qwen/Qwen2.5-VL-72B-Instruct",
+      "label": "Qwen 2.5 VL 72B",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "*",
+      "label": "Unknown Gent model",
+      "hidden": true,
+      "inputModalities": [
+        "text"
+      ],
+      "unsupportedImageAttachmentMessage": "This model does not support image attachments. Switch models to send images."
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "perTurnSettings": true,
+    "rawTextOutput": false,
+    "permissionMetadata": "none",
+    "readiness": "immediate"
+  },
+  "timeouts": {
+    "readinessTimeoutMs": 30000,
+    "wedgeTimeoutMs": 180000
+  }
+}
