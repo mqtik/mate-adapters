@@ -65,12 +65,13 @@
     {
       "id": "gent",
       "name": "Gent",
-      "version": 3,
-      "specUrl": "specs/gent.v3.json",
-      "contentHash": "7af4d23d081ac43b2d16d772adb1283b0144fb00ed6a801436f4c874669f9b57",
+      "version": 4,
+      "specUrl": "specs/gent.v4.json",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
-      "minDriverVersion": 0
+      "minDriverVersion": 0,
+      "contentHash": "c3fb78dafb0afbab6caebe0d48c196dec9a03a8664deed0c43657278ff05243a",
+      "sha256": "c3fb78dafb0afbab6caebe0d48c196dec9a03a8664deed0c43657278ff05243a"
     }
   ]
 }
