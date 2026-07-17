@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "codex",
   "name": "Codex",
-  "version": 15,
+  "version": 16,
   "minAppVersion": "0.0.0",
   "minDriverVersion": 0,
   "description": "OpenAI Codex CLI (JSON-RPC app-server). Completed collaboration calls hydrate child-thread transcript items through the adapter-declared app-server request.",
@@ -85,7 +85,7 @@
         "match": {
           "equals": "thread/status/changed"
         },
-        "emit": "system"
+        "emit": "streamEvent"
       },
       {
         "match": {
@@ -464,6 +464,45 @@
           "turnId": "params.turn.id"
         },
         "emit": "turnStart"
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "thread/status/changed"
+            },
+            {
+              "on": "params.status.type",
+              "equals": "idle"
+            }
+          ]
+        },
+        "emit": "childTurnEnd",
+        "fields": {
+          "threadId": "params.threadId"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "thread/status/changed"
+            },
+            {
+              "on": "params.status.type",
+              "equals": "systemError"
+            }
+          ]
+        },
+        "emit": "childError",
+        "fields": {
+          "threadId": "params.threadId",
+          "message": {
+            "value": "Sub-agent ended with a system error."
+          }
+        }
       },
       {
         "match": {
@@ -1614,6 +1653,15 @@
       "subAgentTranscript": {
         "requestMethod": "thread/items/list",
         "threadIdsField": "receiverThreadIds",
+        "completionMethods": [
+          "thread/status/changed"
+        ],
+        "completionThreadIdField": "params.threadId",
+        "completionStatusField": "params.status.type",
+        "completionStatuses": [
+          "idle",
+          "systemError"
+        ],
         "responseItemsField": "data",
         "textItemTypes": [
           "userMessage",
