@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "claude",
   "name": "Claude Code",
-  "version": 5,
+  "version": 6,
   "minAppVersion": "0.0.0",
   "minDriverVersion": 0,
   "icon": "assets/icons/claude.svg",
@@ -451,6 +451,25 @@
         "setState": {
           "activeToolId": null
         }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "type",
+              "equals": "stream_event"
+            },
+            {
+              "on": "event.type",
+              "equals": "subagent_activity"
+            },
+            {
+              "on": "event.kind",
+              "equals": "end"
+            }
+          ]
+        },
+        "emit": "turnEnd"
       },
       {
         "match": {
