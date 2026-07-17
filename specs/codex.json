@@ -1,0 +1,1624 @@
+{
+  "schemaVersion": 1,
+  "id": "codex",
+  "name": "Codex",
+  "version": 14,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "OpenAI Codex CLI (JSON-RPC app-server). Completed collaboration calls hydrate child-thread transcript items through the adapter-declared app-server request.",
+  "binaryName": "codex",
+  "installInstructions": "Install: npm install -g @openai/codex",
+  "spawn": {
+    "oneShot": false,
+    "loginShell": true,
+    "workingDir": "{cwd}",
+    "oneShotArgs": [
+      "-q",
+      "{prompt}"
+    ],
+    "args": [
+      "app-server"
+    ],
+    "envFilters": {
+      "removeNames": [],
+      "removePrefixes": [],
+      "prependPathDirs": [
+        "{bundledBinDir}"
+      ],
+      "passThrough": [
+        "PATH",
+        "HOME",
+        "LANG",
+        "TERM",
+        "USER",
+        "SHELL"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "jsonrpc",
+    "framing": "ndjson",
+    "attachments": "plugin",
+    "userMessage": {
+      "method": "turn/start",
+      "idStrategy": "monotonic",
+      "gateOn": {
+        "var": "threadId",
+        "op": "set"
+      },
+      "paramsTemplate": {
+        "threadId": "{threadId}",
+        "model": "{model}",
+        "effort": "{effort}",
+        "input": [
+          {
+            "type": "text",
+            "text": "{prompt}"
+          }
+        ]
+      }
+    },
+    "interrupt": {
+      "method": "turn/interrupt",
+      "paramsTemplate": {
+        "threadId": "{threadId}"
+      }
+    },
+    "controlResponse": {
+      "handler": "plugin"
+    }
+  },
+  "parsing": {
+    "framing": "ndjson",
+    "protocol": "jsonrpc-2.0",
+    "discriminator": "method",
+    "pluginFallback": true,
+    "_comment": "Classification rules: method -> coarse routing kind (system | streamEvent | permission | controlCancel | result | ignore). `ignore` = recognized housekeeping the UI drops AND the mux feed suppresses (must NOT be `system`, which publishes to the feed). This is the SOURCE OF TRUTH for how the bundled Codex driver routes JSON-RPC methods. Reducers declare the canonical app-server 0.144.1 turn, agent-message, reasoning, tool, and child-thread projections. Plan projection is declared by parsing.planUpdates, so the generic adapter owns list-to-task normalization. Codex Plan Mode behavior is supplied by codePlugin.config.autonomy.plan.modeInstruction; no plan policy text is embedded in Dart. Provider protocol changes must be made here and delivered through the mate-adapters registry, rather than by adding a new versioned spec filename or a Dart event-shape branch. Version 13 declares native app-server item families (MCP, dynamic tools, collaboration, web/image, hook/review, and completed reasoning/plan) with no Codex driver event-shape projection. Version 14 preserves nested collaboration metadata and nested child-thread IDs through generic declarative deep-field primitives.",
+    "rules": [
+      {
+        "match": {
+          "equals": "thread/started"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/status/changed"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/name/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/settings/updated"
+        },
+        "emit": "ignore"
+      },
+      {
+        "match": {
+          "equals": "thread/tokenUsage/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "turn/diff/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "account/rateLimits/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "mcpServer/startupStatus/updated"
+        },
+        "emit": "ignore"
+      },
+      {
+        "match": {
+          "equals": "remoteControl/status/changed"
+        },
+        "emit": "ignore"
+      },
+      {
+        "match": {
+          "equals": "skills/changed"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "turn/started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/completed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/agentMessage/delta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/commandExecution/outputDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/commandExecution/terminalInteraction"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/fileChange/outputDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/plan/delta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/plan/updated"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/fileChange/patchUpdated"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/mcpToolCall/progress"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/reasoning/summaryTextDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/reasoning/textDelta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "warning"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "guardianWarning"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "deprecationNotice"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "configWarning"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "model/rerouted"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "model/verification"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/compacted"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/completed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/aborted"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/failed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "serverRequest/resolved"
+        },
+        "emit": "controlCancel"
+      },
+      {
+        "match": {
+          "equals": "item/commandExecution/requestApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "item/fileChange/requestApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "item/tool/requestUserInput"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "mcpServer/elicitation/request"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "item/permissions/requestApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "applyPatchApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "execCommandApproval"
+        },
+        "emit": "permission"
+      },
+      {
+        "match": {
+          "equals": "account/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "model/safetyBuffering/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/archived"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/unarchived"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/deleted"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/closed"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "thread/goal/updated"
+        },
+        "emit": "system"
+      },
+      {
+        "match": {
+          "equals": "item/autoApprovalReview/started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/autoApprovalReview/completed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/reasoning/summaryPartAdded"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "item/tool/call"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "turn/moderationMetadata"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/realtime/started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/realtime/closed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/realtime/error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/realtime/itemAdded"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/realtime/outputAudio"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "thread/realtime/transcript"
+        },
+        "emit": "streamEvent"
+      }
+    ],
+    "planUpdates": [
+      {
+        "match": "turn/plan/updated",
+        "itemsPath": "params.plan",
+        "idPath": "params.turnId",
+        "contentPath": "step",
+        "statusPath": "status",
+        "statusMap": {
+          "inProgress": "in_progress",
+          "completed": "completed"
+        },
+        "toolName": "write_todos",
+        "inputKey": "todos"
+      }
+    ],
+    "reducers": [
+      {
+        "match": "thread/started",
+        "capture": {
+          "threadId": "params.thread.id"
+        }
+      },
+      {
+        "match": "turn/started",
+        "capture": {
+          "turnId": "params.turn.id"
+        },
+        "emit": "turnStart"
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "agentMessage"
+            }
+          ]
+        },
+        "emit": "messageStart"
+      },
+      {
+        "match": "item/agentMessage/delta",
+        "emit": "textDelta",
+        "fields": {
+          "text": "params.delta"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "agentMessage"
+            }
+          ]
+        },
+        "emit": "messageDone",
+        "fields": {
+          "text": "params.item.text"
+        }
+      },
+      {
+        "match": {
+          "on": "method",
+          "oneOf": [
+            "item/reasoning/summaryTextDelta",
+            "item/reasoning/textDelta",
+            "item/plan/delta"
+          ]
+        },
+        "emit": "thinkingDelta",
+        "fields": {
+          "text": "params.delta"
+        }
+      },
+      {
+        "match": "item/reasoning/summaryPartAdded",
+        "emit": "thinkingBoundary"
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "commandExecution"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "value": "run_shell_command"
+          },
+          "input": "params.item.command"
+        }
+      },
+      {
+        "match": "item/commandExecution/outputDelta",
+        "emit": "toolOutput",
+        "fields": {
+          "toolId": "params.itemId",
+          "output": "params.delta"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "commandExecution"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": "params.item.aggregatedOutput"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "fileChange"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "value": "Edit"
+          },
+          "input": "params.item.changes"
+        }
+      },
+      {
+        "match": "item/fileChange/outputDelta",
+        "emit": "toolOutput",
+        "fields": {
+          "toolId": "params.itemId",
+          "output": "params.delta"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "fileChange"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": "params.item.status"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "mcpToolCall"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "template": "mcp__{server}__{tool}",
+            "fallbackTemplate": "{tool}",
+            "fields": {
+              "server": "params.item.server",
+              "tool": "params.item.tool"
+            }
+          },
+          "input": {
+            "jsonObject": {
+              "server": "params.item.server",
+              "tool": "params.item.tool",
+              "arguments": "params.item.arguments"
+            }
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "mcpToolCall"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": {
+            "coalesce": [
+              {
+                "contentText": "params.item.result"
+              },
+              {
+                "contentText": "params.item.error"
+              }
+            ]
+          },
+          "isError": {
+            "isSet": "params.item.error"
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "dynamicToolCall"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "template": "{namespace}:{tool}",
+            "fallbackTemplate": "{tool}",
+            "fields": {
+              "namespace": "params.item.namespace",
+              "tool": "params.item.tool"
+            }
+          },
+          "input": {
+            "jsonObject": {
+              "namespace": "params.item.namespace",
+              "tool": "params.item.tool",
+              "arguments": "params.item.arguments"
+            }
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "dynamicToolCall"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": {
+            "coalesce": [
+              {
+                "contentText": "params.item.contentItems"
+              },
+              {
+                "contentText": "params.item.result"
+              },
+              {
+                "contentText": "params.item.error"
+              }
+            ]
+          },
+          "isError": {
+            "isSet": "params.item.error"
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "oneOf": [
+                "collabAgentToolCall",
+                "collabToolCall"
+              ]
+            }
+          ]
+        },
+        "parentCapture": {
+          "parentIdPath": "params.item.id",
+          "childThreadPaths": [
+            "params.item.receiverThreadIds",
+            "params.item.receiverThreadId",
+            "params.item.newThreadId"
+          ],
+          "childThreadDeepFields": [
+            {
+              "path": "params.item",
+              "keys": [
+                "threadId",
+                "receiverThreadId",
+                "newThreadId",
+                "receiverThreadIds"
+              ]
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "value": "Agent"
+          },
+          "input": {
+            "jsonObject": {
+              "tool": "params.item.tool",
+              "description": {
+                "deepFirst": {
+                  "path": "params.item",
+                  "keys": [
+                    "description",
+                    "title",
+                    "task",
+                    "name",
+                    "agentName",
+                    "label",
+                    "displayName"
+                  ]
+                }
+              },
+              "prompt": {
+                "deepFirst": {
+                  "path": "params.item",
+                  "keys": [
+                    "prompt",
+                    "instructions",
+                    "instruction",
+                    "taskPrompt",
+                    "task",
+                    "description",
+                    "title"
+                  ]
+                }
+              },
+              "model": {
+                "deepFirst": {
+                  "path": "params.item",
+                  "keys": [
+                    "model",
+                    "agentModel",
+                    "modelId"
+                  ]
+                }
+              },
+              "agents": "params.item.agents",
+              "receiverThreadId": "params.item.receiverThreadId",
+              "receiverThreadIds": "params.item.receiverThreadIds",
+              "newThreadId": "params.item.newThreadId"
+            }
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "oneOf": [
+                "collabAgentToolCall",
+                "collabToolCall"
+              ]
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": {
+            "coalesce": [
+              {
+                "contentText": "params.item.agentsStates"
+              },
+              {
+                "contentText": "params.item.agentStatus"
+              },
+              {
+                "contentText": "params.item.error"
+              }
+            ]
+          },
+          "isError": {
+            "isSet": "params.item.error"
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "webSearch"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "value": "WebSearch"
+          },
+          "input": {
+            "jsonObject": {
+              "query": "params.item.query"
+            }
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "webSearch"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": {
+            "contentText": "params.item.result"
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "imageView"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "value": "Read"
+          },
+          "input": {
+            "jsonObject": {
+              "file_path": "params.item.path"
+            }
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "imageView"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": {
+            "contentText": "params.item.result"
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "imageGeneration"
+            }
+          ]
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "params.item.id",
+          "name": {
+            "value": "image_generation"
+          },
+          "input": {
+            "jsonObject": {
+              "prompt": {
+                "coalesce": [
+                  "params.item.revisedPrompt",
+                  "params.item.prompt"
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "imageGeneration"
+            }
+          ]
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "params.item.id",
+          "output": {
+            "coalesce": [
+              "params.item.savedPath",
+              {
+                "contentText": "params.item.result"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "hookPrompt"
+            }
+          ]
+        },
+        "emit": "thinkingDelta",
+        "fields": {
+          "text": {
+            "contentText": "params.item.fragments"
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "enteredReviewMode"
+            }
+          ]
+        },
+        "emit": "thinkingDelta",
+        "fields": {
+          "text": "params.item.review"
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "exitedReviewMode"
+            }
+          ]
+        },
+        "emit": "statusMessage",
+        "fields": {
+          "message": {
+            "coalesce": [
+              "params.item.review",
+              {
+                "value": "Exited review mode"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/started"
+            },
+            {
+              "on": "params.item.type",
+              "oneOf": [
+                "reasoning",
+                "plan"
+              ]
+            }
+          ]
+        },
+        "emit": "thinkingDelta",
+        "fields": {
+          "text": {
+            "coalesce": [
+              "params.item.text",
+              {
+                "contentText": "params.item.summary"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "reasoning"
+            }
+          ]
+        },
+        "emit": "thinkingDelta",
+        "fields": {
+          "text": {
+            "coalesce": [
+              "params.item.text",
+              {
+                "contentText": "params.item.summary"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "match": {
+          "all": [
+            {
+              "on": "method",
+              "equals": "item/completed"
+            },
+            {
+              "on": "params.item.type",
+              "equals": "plan"
+            }
+          ]
+        },
+        "emit": "planProposed",
+        "fields": {
+          "plan": {
+            "coalesce": [
+              "params.item.text",
+              {
+                "contentText": "params.item.summary"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "match": "turn/completed",
+        "emit": "turnEnd",
+        "dedupe": {
+          "bucket": "terminalTurn",
+          "idPaths": [
+            "params.turn.id",
+            "params.turnId",
+            "params.id"
+          ],
+          "fallbackState": "turnId",
+          "maxEntries": 64
+        }
+      },
+      {
+        "match": "turn/aborted",
+        "emit": "turnEnd",
+        "dedupe": {
+          "bucket": "terminalTurn",
+          "idPaths": [
+            "params.turn.id",
+            "params.turnId",
+            "params.id"
+          ],
+          "fallbackState": "turnId",
+          "maxEntries": 64
+        }
+      },
+      {
+        "match": "turn/failed",
+        "emit": "error",
+        "fields": {
+          "message": "params.error.message"
+        }
+      }
+    ]
+  },
+  "tools": {
+    "categories": {
+      "edit": [
+        "apply_patch",
+        "write_file",
+        "edit_file",
+        "Edit"
+      ],
+      "read": [
+        "read_file",
+        "Read",
+        "imageView"
+      ],
+      "bash": [
+        "run_shell_command",
+        "shell",
+        "Bash"
+      ],
+      "search": [
+        "grep",
+        "search",
+        "Grep",
+        "list_directory"
+      ],
+      "agent": [
+        "Agent",
+        "collabAgentToolCall",
+        "collabToolCall",
+        "spawn_agent"
+      ],
+      "web": [
+        "WebSearch",
+        "web_search",
+        "web_fetch"
+      ],
+      "task": [
+        "write_todos"
+      ]
+    },
+    "display": {
+      "run_shell_command": {
+        "friendlyName": "Run command",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "command"
+        ]
+      },
+      "read_file": {
+        "friendlyName": "Read file",
+        "labelTemplate": "Read {detail}",
+        "detailFields": [
+          "path",
+          "file_path"
+        ]
+      },
+      "apply_patch": {
+        "friendlyName": "Apply patch",
+        "labelTemplate": "Patch {detail}",
+        "detailFields": [
+          "path",
+          "file_path"
+        ]
+      },
+      "Bash": {
+        "friendlyName": "Run command",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "command"
+        ]
+      },
+      "Read": {
+        "friendlyName": "Read file",
+        "labelTemplate": "Read {detail}",
+        "detailFields": [
+          "file_path",
+          "path"
+        ]
+      },
+      "Edit": {
+        "friendlyName": "Edit files",
+        "labelTemplate": "Edit {detail}",
+        "detailFields": [
+          "file_path",
+          "path",
+          "paths"
+        ]
+      },
+      "Grep": {
+        "friendlyName": "Search files",
+        "labelTemplate": "Search {detail}",
+        "detailFields": [
+          "query",
+          "path"
+        ]
+      },
+      "WebSearch": {
+        "friendlyName": "Search web",
+        "labelTemplate": "Search {detail}",
+        "detailFields": [
+          "query"
+        ]
+      },
+      "Agent": {
+        "friendlyName": "Subagent",
+        "labelTemplate": "Delegate {detail}",
+        "detailFields": [
+          "prompt",
+          "tool"
+        ]
+      },
+      "image_generation": {
+        "friendlyName": "Generate image",
+        "labelTemplate": "Generate image"
+      },
+      "hookPrompt": {
+        "friendlyName": "Hook prompt",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "fragments"
+        ]
+      },
+      "enteredReviewMode": {
+        "friendlyName": "Enter review",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "review"
+        ]
+      },
+      "exitedReviewMode": {
+        "friendlyName": "Exit review",
+        "labelTemplate": "{detail}",
+        "detailFields": [
+          "review"
+        ]
+      }
+    }
+  },
+  "tasks": {
+    "snapshotTools": [
+      "write_todos",
+      "writeTodos",
+      "update_plan"
+    ],
+    "createTools": [],
+    "updateTools": [],
+    "collectionFields": [
+      "todos",
+      "tasks",
+      "plan"
+    ],
+    "subjectFields": [
+      "content",
+      "subject",
+      "title",
+      "description"
+    ],
+    "idFields": [
+      "id",
+      "taskId",
+      "task_id"
+    ],
+    "statusFields": [
+      "status"
+    ]
+  },
+  "subAgents": {
+    "presentation": {
+      "tools": [
+        "Agent",
+        "collabAgentToolCall",
+        "collabToolCall",
+        "spawn_agent"
+      ],
+      "titleFields": [
+        "description",
+        "title",
+        "name",
+        "task",
+        "instructions",
+        "prompt"
+      ],
+      "promptFields": [
+        "prompt",
+        "instructions",
+        "task",
+        "description",
+        "title"
+      ],
+      "modelFields": [
+        "model",
+        "agentModel"
+      ],
+      "childListFields": [
+        "agents",
+        "subagents"
+      ]
+    }
+  },
+  "models": [
+    {
+      "id": "gpt-5.6-sol",
+      "label": "GPT-5.6 Sol",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "label": "GPT-5.6 Terra",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "label": "GPT-5.6 Luna",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.5",
+      "label": "GPT-5.5",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.4",
+      "label": "GPT-5.4",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT-5.4 Mini",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "label": "GPT-5.3 Codex Spark",
+      "inputModalities": [
+        "text"
+      ],
+      "unsupportedImageAttachmentMessage": "This model does not support image attachments. Switch models to send images."
+    }
+  ],
+  "effortLevels": [
+    {
+      "id": "low",
+      "label": "Low",
+      "icon": "bolt"
+    },
+    {
+      "id": "high",
+      "label": "High",
+      "icon": "auto_fix_high"
+    }
+  ],
+  "slashCommands": [
+    {
+      "command": "/clear",
+      "description": "Clear conversation",
+      "action": "clear"
+    },
+    {
+      "command": "/new",
+      "description": "Start fresh",
+      "action": "new"
+    },
+    {
+      "command": "/rename",
+      "description": "Rename this session",
+      "action": "rename"
+    },
+    {
+      "command": "/export",
+      "description": "Export conversation",
+      "action": "export"
+    },
+    {
+      "command": "/model",
+      "description": "Change model",
+      "action": "model"
+    },
+    {
+      "command": "/config",
+      "description": "Edit global config",
+      "action": "editGlobalConfig"
+    },
+    {
+      "command": "/project-config",
+      "description": "Edit project config",
+      "action": "editProjectConfig"
+    },
+    {
+      "command": "/connect",
+      "description": "Generate an MCP connector",
+      "action": "connect",
+      "promptStarter": "/connect "
+    },
+    {
+      "command": "/preview",
+      "description": "Open web preview for a port",
+      "action": "preview"
+    },
+    {
+      "command": "/compact",
+      "description": "Compact context window",
+      "action": "compact"
+    },
+    {
+      "command": "/automate",
+      "description": "Create an automation",
+      "action": "automate",
+      "promptStarter": "Create an automation that "
+    },
+    {
+      "command": "/remind",
+      "description": "Set a reminder",
+      "action": "remind",
+      "promptStarter": "Remind me to "
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "forkSession": false,
+    "perTurnSettings": true,
+    "midSessionModeSwitch": false,
+    "nativeSkills": true,
+    "requiresClientEncoding": true,
+    "rawTextOutput": false,
+    "instructionsFileName": "AGENTS.md",
+    "globalConfigDir": ".codex",
+    "projectConfigDir": ".codex",
+    "liveSteer": true,
+    "nextTurnQueue": true,
+    "readiness": "handshake",
+    "turnEnd": "permissionsExpire"
+  },
+  "timeouts": {
+    "noClientMs": 1800000,
+    "inactiveMs": 7200000,
+    "spawnFastFailMs": 10000,
+    "resumeHistoryMaxChars": 20000
+  },
+  "codePlugin": {
+    "kind": "bundled",
+    "driverId": "codex",
+    "minDriverVersion": 0,
+    "delegates": [
+      "handshake",
+      "encodeUserMessage",
+      "parseControlRequest",
+      "parseStreamEvent",
+      "encodeControlResponse",
+      "attachments",
+      "discoverModels",
+      "btw"
+    ],
+    "config": {
+      "reasoningSummary": "auto",
+      "autonomy": {
+        "bypass": {
+          "approvalPolicy": "never",
+          "sandboxMode": "danger-full-access",
+          "modeInstruction": "",
+          "collaborationMode": "default",
+          "multiAgentMode": "proactive"
+        },
+        "plan": {
+          "approvalPolicy": "untrusted",
+          "sandboxMode": "read-only",
+          "modeInstruction": "You are in Plan Mode. Do not make changes, run write commands, or apply patches. Inspect only as needed, then call update_plan with a complete, actionable plan before responding. Wait for user approval before implementation.",
+          "collaborationMode": "plan",
+          "multiAgentMode": "proactive"
+        },
+        "default": {
+          "approvalPolicy": "untrusted",
+          "sandboxMode": "workspace-write",
+          "modeInstruction": "",
+          "collaborationMode": "default",
+          "multiAgentMode": "proactive"
+        }
+      },
+      "subAgentTranscript": {
+        "requestMethod": "thread/items/list",
+        "threadIdsField": "receiverThreadIds",
+        "responseItemsField": "data",
+        "textItemTypes": [
+          "userMessage",
+          "agentMessage",
+          "reasoning",
+          "plan"
+        ],
+        "textFields": [
+          "text",
+          "summary"
+        ],
+        "limit": 100,
+        "sortDirection": "asc"
+      }
+    }
+  }
+}

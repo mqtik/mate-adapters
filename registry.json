@@ -5,8 +5,8 @@
       "id": "claude",
       "name": "Claude Code",
       "version": 3,
-      "specUrl": "specs/claude.v3.json",
-      "contentHash": "aa7131730e80a12bfd6689d946079b300b30358a74324a15596f899300613615",
+      "specUrl": "specs/claude.json",
+      "contentHash": "ecf34a25bc7330b225f243ca8bfd5d3ab6b75ff7a57bbf4d8fb978611bf35b66",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -15,8 +15,8 @@
       "id": "codex",
       "name": "Codex",
       "version": 10,
-      "specUrl": "specs/codex.v10.json",
-      "contentHash": "514f97e8ca0bfec3fa7d5bca6ce3f333dc925e39ffc318ec6ec7c05940c1e3c4",
+      "specUrl": "specs/codex.json",
+      "contentHash": "dd371f16eb2d67721972c4486a7bf9b97fa5d7df75ce112128e00a7cf02949c5",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0,
@@ -26,8 +26,8 @@
       "id": "openai-compatible",
       "name": "OpenAI Compatible",
       "version": 3,
-      "specUrl": "specs/openai-compatible.v3.json",
-      "contentHash": "1adf1f2545e7c5f700674e588b35a760717c76f443359d1c3fc26f2e7d7c3136",
+      "specUrl": "specs/openai-compatible.json",
+      "contentHash": "0417d40fffdae86f6c6dbbf1a91c7e7b131eb5f7f54025f7b24a7063d5857a6e",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -36,8 +36,8 @@
       "id": "openai-compatible-chat",
       "name": "OpenAI-Compatible Chat Completions",
       "version": 4,
-      "specUrl": "specs/openai-compatible-chat.v4.json",
-      "contentHash": "0bda982fccabce88d01c1b96aae98ce91e33a07441a8e9ad622c414098d148e7",
+      "specUrl": "specs/openai-compatible-chat.json",
+      "contentHash": "b9f9cb9c3ec5e546504fda317cf1bd28b83fe2274c6f47d805b4346e4311bbe6",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -46,8 +46,8 @@
       "id": "together",
       "name": "Together AI",
       "version": 3,
-      "specUrl": "specs/together.v3.json",
-      "contentHash": "87d0febb0a3ef5d3c629fbfad10a669c278de750fbb58617736b9ed571afeb14",
+      "specUrl": "specs/together.json",
+      "contentHash": "8fe160de2049a9cffb9c60469f784c526f6e3a07ab27c6a93ac54f7a310fb269",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -56,8 +56,8 @@
       "id": "ollama",
       "name": "Ollama",
       "version": 3,
-      "specUrl": "specs/ollama.v3.json",
-      "contentHash": "a70e1b5f3a239415bb27699ed5306d7bef3925c52fb1894c2c1e1b9f4d196387",
+      "specUrl": "specs/ollama.json",
+      "contentHash": "dafc6667e098981629d37260393b089daacffaa2a5fe2855f0a5654013c2e46e",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
@@ -66,12 +66,11 @@
       "id": "gent",
       "name": "Gent",
       "version": 4,
-      "specUrl": "specs/gent.v4.json",
+      "specUrl": "specs/gent.json",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0,
-      "contentHash": "c3fb78dafb0afbab6caebe0d48c196dec9a03a8664deed0c43657278ff05243a",
-      "sha256": "c3fb78dafb0afbab6caebe0d48c196dec9a03a8664deed0c43657278ff05243a"
+      "contentHash": "2c407a5bf1cb4ff2445f3a86df0535f161ba20b27f40e23dcc621d0c0b799436"
     }
   ]
 }

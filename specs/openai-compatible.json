@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "id": "openai-compatible",
+  "name": "OpenAI Compatible",
+  "version": 4,
+  "minAppVersion": "0.0.0",
+  "minDriverVersion": 0,
+  "description": "Any OpenAI-compatible Responses API endpoint over HTTP/SSE. Function calls are executed locally by the shared, adapter-defined tool runtime when the selected model supports OpenAI-style tools.",
+  "binaryName": "http-responses",
+  "installInstructions": "Set MATE_OPENAI_COMPATIBLE_ENDPOINT and MATE_OPENAI_COMPATIBLE_API_KEY.",
+  "spawn": {
+    "command": "http-responses",
+    "args": [],
+    "oneShot": false,
+    "loginShell": false,
+    "workingDir": "{cwd}"
+  },
+  "transport": {
+    "kind": "http-responses",
+    "endpointEnv": "MATE_OPENAI_COMPATIBLE_ENDPOINT",
+    "apiKeyEnv": "MATE_OPENAI_COMPATIBLE_API_KEY",
+    "headers": {
+      "X-Mate-Adapter": "openai-compatible"
+    },
+    "toolRuntime": {
+      "enabled": true,
+      "tools": [
+        "read_file",
+        "write_file",
+        "list_files",
+        "search_files",
+        "run_command",
+        "ask_user",
+        "update_plan",
+        "request_plan_approval"
+      ]
+    }
+  },
+  "encoding": {
+    "mode": "template",
+    "framing": "json",
+    "attachments": "openaiResponses",
+    "userMessage": {
+      "template": {
+        "model": "{model}",
+        "stream": true,
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "{prompt}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "modeInstructions": {
+      "plan": "You are in Plan mode. Do not make changes or invoke mutating tools. Analyze the request, call update_plan with concise numbered tasks, then call request_plan_approval with the final plan. Wait for approval before implementation."
+    }
+  },
+  "parsing": {
+    "framing": "sse",
+    "protocol": "responses",
+    "discriminator": "type",
+    "pluginFallback": false,
+    "rules": [
+      {
+        "match": {
+          "equals": "response.created"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.output_text.delta"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.completed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.failed"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "error"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.output_item.added"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "response.output_item.done"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.started"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.output"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.tool.done"
+        },
+        "emit": "streamEvent"
+      },
+      {
+        "match": {
+          "equals": "mate.control_request"
+        },
+        "emit": "control_request",
+        "fields": {
+          "requestId": "requestId",
+          "toolName": "toolName",
+          "input": "input",
+          "toolUseId": "toolUseId"
+        }
+      }
+    ],
+    "reducers": [
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.created"
+        },
+        "emit": "turnStart"
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.output_text.delta"
+        },
+        "emit": "textDelta",
+        "fields": {
+          "text": "delta"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.output_item.added"
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "item.id",
+          "name": "item.name",
+          "input": "item.arguments"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.output_item.done"
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "item.id",
+          "output": "item.output",
+          "isError": "item.error"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.completed"
+        },
+        "emit": "turnEnd"
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "response.failed"
+        },
+        "emit": "error",
+        "fields": {
+          "message": "response.error.message"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "error"
+        },
+        "emit": "error",
+        "fields": {
+          "message": "message"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.started"
+        },
+        "emit": "toolStart",
+        "fields": {
+          "id": "id",
+          "name": "name",
+          "input": "input"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.output"
+        },
+        "emit": "toolOutput",
+        "fields": {
+          "toolId": "toolId",
+          "output": "output"
+        }
+      },
+      {
+        "match": {
+          "on": "type",
+          "equals": "mate.tool.done"
+        },
+        "emit": "toolDone",
+        "fields": {
+          "toolId": "toolId",
+          "output": "output",
+          "isError": "isError"
+        }
+      }
+    ]
+  },
+  "tasks": {
+    "snapshotTools": ["update_plan"],
+    "createTools": [],
+    "updateTools": [],
+    "collectionFields": ["todos", "tasks", "plan"],
+    "subjectFields": ["content", "subject", "title", "description"],
+    "idFields": ["id", "taskId", "task_id"],
+    "statusFields": ["status"]
+  },
+  "subAgents": {
+    "presentation": {
+      "tools": ["spawn_agent", "Agent"],
+      "titleFields": ["description", "title", "name", "task", "instructions", "prompt"],
+      "promptFields": ["prompt", "instructions", "task", "description"],
+      "modelFields": ["model"],
+      "childListFields": ["agents", "subagents"]
+    }
+  },
+  "models": [
+    {
+      "id": "gpt-5.4",
+      "label": "GPT-5.4",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT-5.4 mini",
+      "inputModalities": [
+        "text",
+        "image"
+      ]
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "label": "GPT-5.3 Codex Spark",
+      "inputModalities": [
+        "text"
+      ],
+      "unsupportedImageAttachmentMessage": "This model does not support image attachments. Switch models to send images."
+    }
+  ],
+  "capabilities": {
+    "nativeResume": false,
+    "perTurnSettings": true,
+    "rawTextOutput": false,
+    "permissionMetadata": "none",
+    "readiness": "immediate",
+    "turnEnd": "terminal"
+  },
+  "timeouts": {
+    "readinessTimeoutMs": 30000,
+    "wedgeTimeoutMs": 180000
+  }
+}
