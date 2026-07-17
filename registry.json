@@ -6,7 +6,7 @@
       "name": "Claude Code",
       "version": 3,
       "specUrl": "specs/claude.json",
-      "contentHash": "ecf34a25bc7330b225f243ca8bfd5d3ab6b75ff7a57bbf4d8fb978611bf35b66",
+      "contentHash": "1265fcba0c610e702b12b7a31612d9deb1e3470f47fa20b2a1572bcab8484228",
       "schemaVersion": 1,
       "minAppVersion": "0.0.0",
       "minDriverVersion": 0
