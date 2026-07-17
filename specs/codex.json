@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "codex",
   "name": "Codex",
-  "version": 14,
+  "version": 15,
   "minAppVersion": "0.0.0",
   "minDriverVersion": 0,
   "description": "OpenAI Codex CLI (JSON-RPC app-server). Completed collaboration calls hydrate child-thread transcript items through the adapter-declared app-server request.",
@@ -73,7 +73,7 @@
     "protocol": "jsonrpc-2.0",
     "discriminator": "method",
     "pluginFallback": true,
-    "_comment": "Classification rules: method -> coarse routing kind (system | streamEvent | permission | controlCancel | result | ignore). `ignore` = recognized housekeeping the UI drops AND the mux feed suppresses (must NOT be `system`, which publishes to the feed). This is the SOURCE OF TRUTH for how the bundled Codex driver routes JSON-RPC methods. Reducers declare the canonical app-server 0.144.1 turn, agent-message, reasoning, tool, and child-thread projections. Plan projection is declared by parsing.planUpdates, so the generic adapter owns list-to-task normalization. Codex Plan Mode behavior is supplied by codePlugin.config.autonomy.plan.modeInstruction; no plan policy text is embedded in Dart. Provider protocol changes must be made here and delivered through the mate-adapters registry, rather than by adding a new versioned spec filename or a Dart event-shape branch. Version 13 declares native app-server item families (MCP, dynamic tools, collaboration, web/image, hook/review, and completed reasoning/plan) with no Codex driver event-shape projection. Version 14 preserves nested collaboration metadata and nested child-thread IDs through generic declarative deep-field primitives.",
+    "_comment": "Classification rules: method -> coarse routing kind (system | streamEvent | permission | controlCancel | result | ignore). `ignore` = recognized housekeeping the UI drops AND the mux feed suppresses (must NOT be `system`, which publishes to the feed). This is the SOURCE OF TRUTH for how the bundled Codex driver routes JSON-RPC methods. Reducers declare the canonical app-server turn, agent-message, reasoning, tool, and child-thread projections. Reasoning summaries are emitted as activityDelta/activityBoundary so the app renders concise work updates rather than confusing them with the reasoning transcript. Plan projection is declared by parsing.planUpdates, so the generic adapter owns list-to-task normalization. Codex Plan Mode behavior is supplied by codePlugin.config.autonomy.plan.modeInstruction; no plan policy text is embedded in Dart. Provider protocol changes must be made here and delivered through the mate-adapters registry, rather than by adding a new versioned spec filename or a Dart event-shape branch.",
     "rules": [
       {
         "match": {
@@ -508,8 +508,17 @@
       {
         "match": {
           "on": "method",
+          "equals": "item/reasoning/summaryTextDelta"
+        },
+        "emit": "activityDelta",
+        "fields": {
+          "text": "params.delta"
+        }
+      },
+      {
+        "match": {
+          "on": "method",
           "oneOf": [
-            "item/reasoning/summaryTextDelta",
             "item/reasoning/textDelta",
             "item/plan/delta"
           ]
@@ -521,7 +530,7 @@
       },
       {
         "match": "item/reasoning/summaryPartAdded",
-        "emit": "thinkingBoundary"
+        "emit": "activityBoundary"
       },
       {
         "match": {
